@@ -15,6 +15,7 @@ const BookingSchema = new Schema<IBooking>(
       type: Schema.Types.ObjectId,
       ref: "Event",
       required: [true, "Event ID is required"],
+      index: true, // Also index here for ref performance
     },
     email: {
       type: String,
@@ -23,7 +24,6 @@ const BookingSchema = new Schema<IBooking>(
       lowercase: true,
       validate: {
         validator: function (email: string) {
-          // RFC 5322 compliant email validation regex
           const emailRegex =
             /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
           return emailRegex.test(email);
@@ -33,52 +33,52 @@ const BookingSchema = new Schema<IBooking>(
     },
   },
   {
-    timestamps: true, // Auto-generate createdAt and updatedAt
+    timestamps: true,
   }
 );
 
-// Pre-save hook to validate events exists before creating booking
-BookingSchema.pre("save", async function (next) {
+// MODERN ASYNC MIDDLEWARE — NO MORE "next is not a function" ERROR
+BookingSchema.pre("save", async function () {
   const booking = this as IBooking;
 
-  // Only validate eventId if it's new or modified
-  if (booking.isModified("eventId") || booking.isNew) {
-    try {
-      const eventExists = await Event.findById(booking.eventId).select("_id");
+  // Only validate event existence if eventId is new or modified
+  if (!booking.isNew && !booking.isModified("eventId")) return;
 
-      if (!eventExists) {
-        const error = new Error(
-          `Event with ID ${booking.eventId} does not exist`
-        );
-        error.name = "ValidationError";
-        return next(error);
-      }
-    } catch {
-      const validationError = new Error(
-        "Invalid events ID format or database error"
-      );
-      validationError.name = "ValidationError";
-      return next(validationError);
-    }
+  // Validate that the event actually exists
+  const eventExists = await Event.findById(booking.eventId).select("_id");
+
+  if (!eventExists) {
+    throw new Error(`Event with ID ${booking.eventId} does not exist`);
   }
-
-  next();
 });
 
-// Create index on eventId for faster queries
-BookingSchema.index({ eventId: 1 });
-
-// Create compound index for common queries (events bookings by date)
-BookingSchema.index({ eventId: 1, createdAt: -1 });
-
-// Create index on email for user booking lookups
-BookingSchema.index({ email: 1 });
-
-// Enforce one booking per events per email
+// Unique compound index: one booking per event per email
 BookingSchema.index(
   { eventId: 1, email: 1 },
-  { unique: true, name: "uniq_event_email" }
+  {
+    unique: true,
+    name: "uniq_event_email",
+  }
 );
+
+// Additional useful indexes
+BookingSchema.index({ eventId: 1, createdAt: -1 }); // Get recent bookings per event
+BookingSchema.index({ email: 1, createdAt: -1 }); // User's booking history
+BookingSchema.index({ createdAt: -1 }); // Global recent bookings
+
+// Optional: Add a virtual to populate event easily
+BookingSchema.virtual("event", {
+  ref: "Event",
+  localField: "eventId",
+  foreignField: "_id",
+  justOne: true,
+});
+
+// Enable virtuals when converting to JSON/API
+BookingSchema.set("toJSON", { virtuals: true });
+BookingSchema.set("toObject", { virtuals: true });
+
+// Model
 const Booking = models.Booking || model<IBooking>("Booking", BookingSchema);
 
 export default Booking;

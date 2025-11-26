@@ -1,3 +1,4 @@
+import "dotenv/config";
 import mongoose from "mongoose";
 
 // Define the connection cache type
