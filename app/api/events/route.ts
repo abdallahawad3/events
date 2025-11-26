@@ -23,3 +23,23 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export async function GET() {
+  try {
+    await connectDB();
+    const events = await Event.find().sort({ date: -1 });
+    return NextResponse.json(
+      { message: "Events fetched successfully.", events },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.log(error);
+    return NextResponse.json(
+      {
+        message: "Could not fetch events.",
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
+  }
+}
