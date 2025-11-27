@@ -1,5 +1,7 @@
+import { ObjectId } from "mongodb";
+
 export interface EventItem {
-  _id: string;
+  _id: string | ObjectId;
   title: string;
   slug: string;
   image: string;
@@ -14,6 +16,6 @@ export interface EventItem {
   agenda: string[];
   organizer: string;
   tags: string[];
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
 }

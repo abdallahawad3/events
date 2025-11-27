@@ -1,4 +1,4 @@
-import React from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { cacheLife } from "next/cache";
@@ -6,7 +6,6 @@ import type { IEvent } from "@/database";
 import { getSimilarEventsBySlug } from "@/lib/actions/event.actions";
 import EventCard from "./EventCard";
 import BookEvent from "./BookEvent";
-
 const BASE_URL = process.env.NEXT_PUBLIC_URL;
 
 const EventDetailItem = ({
@@ -49,7 +48,7 @@ const EventDetails = async ({ params }: { params: Promise<string> }) => {
   "use cache";
   cacheLife("hours");
   const slug = await params;
-
+  let similarEvents: any[] = [];
   let event;
   try {
     const request = await fetch(`${BASE_URL}/api/events/${slug}`, {
@@ -92,7 +91,17 @@ const EventDetails = async ({ params }: { params: Promise<string> }) => {
 
   const bookings = 10;
 
-  const similarEvents = await getSimilarEventsBySlug(slug);
+  similarEvents = await getSimilarEventsBySlug(slug);
+  similarEvents = similarEvents.map((ev: any) => ({
+    ...ev,
+    _id:
+      ev &&
+      ev._id &&
+      typeof ev._id === "object" &&
+      typeof ev._id.toString === "function"
+        ? ev._id.toString()
+        : String(ev._id),
+  }));
 
   return (
     <section id="event">
