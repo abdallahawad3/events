@@ -1,13 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import { cacheLife } from "next/cache";
+
 import type { IEvent } from "@/database";
 import { getSimilarEventsBySlug } from "@/lib/actions/event.actions";
 import EventCard from "./EventCard";
 import BookEvent from "./BookEvent";
 const BASE_URL = process.env.NEXT_PUBLIC_URL;
-
 const EventDetailItem = ({
   icon,
   alt,
@@ -45,15 +44,11 @@ const EventTags = ({ tags }: { tags: string[] }) => (
 );
 
 const EventDetails = async ({ params }: { params: Promise<string> }) => {
-  "use cache";
-  cacheLife("hours");
   const slug = await params;
   let similarEvents: any[] = [];
   let event;
   try {
-    const request = await fetch(`${BASE_URL}/api/events/${slug}`, {
-      next: { revalidate: 60 },
-    });
+    const request = await fetch(`${BASE_URL}/api/events/${slug}`);
 
     if (!request.ok) {
       if (request.status === 404) {

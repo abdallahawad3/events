@@ -3,15 +3,11 @@ import EventCard from "@/components/EventCard";
 import ExploreBtn from "@/components/ui/Shared/ExploreBtn";
 
 const URL = process.env.NEXT_PUBLIC_URL;
-
 export default async function Page() {
   let events: any[] = [];
 
   try {
-    const res = await fetch(`${URL}/api/events`, {
-      cache: "no-store", // Fresh data on every request
-      next: { revalidate: 60 }, // Optional: fallback revalidation every 60s
-    });
+    const res = await fetch(`${URL}/api/events`);
 
     if (!res.ok) {
       throw new Error(`Failed to fetch events: ${res.status}`);
